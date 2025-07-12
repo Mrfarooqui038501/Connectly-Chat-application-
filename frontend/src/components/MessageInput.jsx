@@ -6,11 +6,14 @@ import toast from "react-hot-toast";
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef(null);
   const { sendMessage } = useChatStore();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
+    
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
@@ -31,19 +34,37 @@ const MessageInput = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
+    if (isLoading) return;
+
+    setIsLoading(true);
 
     try {
-      await sendMessage({
+      const messageData = {
         text: text.trim(),
         image: imagePreview,
-      });
+      };
+
+      await sendMessage(messageData);
 
       // Clear form
       setText("");
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      
+      toast.success("Message sent successfully!");
     } catch (error) {
       console.error("Failed to send message:", error);
+      
+      // Better error handling
+      if (error.message.includes('CORS')) {
+        toast.error("Connection error. Please check if the server is running.");
+      } else if (error.message.includes('Network')) {
+        toast.error("Network error. Please check your connection.");
+      } else {
+        toast.error("Failed to send message. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -60,7 +81,7 @@ const MessageInput = () => {
             <button
               onClick={removeImage}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300
-              flex items-center justify-center"
+              flex items-center justify-center hover:bg-base-200 transition-colors"
               type="button"
             >
               <X className="size-3" />
@@ -77,6 +98,7 @@ const MessageInput = () => {
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
+            disabled={isLoading}
           />
           <input
             type="file"
@@ -88,9 +110,10 @@ const MessageInput = () => {
 
           <button
             type="button"
-            className={`hidden sm:flex btn btn-circle
+            className={`hidden sm:flex btn btn-circle transition-colors
                      ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
             onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
           >
             <Image size={20} />
           </button>
@@ -98,12 +121,17 @@ const MessageInput = () => {
         <button
           type="submit"
           className="btn btn-sm btn-circle"
-          disabled={!text.trim() && !imagePreview}
+          disabled={(!text.trim() && !imagePreview) || isLoading}
         >
-          <Send size={22} />
+          {isLoading ? (
+            <span className="loading loading-spinner loading-sm"></span>
+          ) : (
+            <Send size={22} />
+          )}
         </button>
       </form>
     </div>
   );
 };
+
 export default MessageInput;

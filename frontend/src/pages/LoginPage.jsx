@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import AuthImagePattern from "../components/AuthImagePattern";
 import { Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from "lucide-react";
 
@@ -48,7 +47,7 @@ const LoginPage = () => {
                 </div>
                 <input
                   type="email"
-                  className={`input input-bordered w-full pl-10`}
+                  className="input input-bordered w-full pl-10"
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -66,7 +65,7 @@ const LoginPage = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  className={`input input-bordered w-full pl-10`}
+                  className="input input-bordered w-full pl-10"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -99,7 +98,7 @@ const LoginPage = () => {
 
           <div className="text-center">
             <p className="text-base-content/60">
-              Don&apos;t have an account?{" "}
+              Don't have an account?{" "}
               <Link to="/signup" className="link link-primary">
                 Create account
               </Link>
@@ -108,12 +107,73 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Right Side - Image/Pattern */}
-      <AuthImagePattern
-        title={"Welcome back!"}
-        subtitle={"Sign in to continue your conversations and catch up with your messages."}
-      />
+      {/* Right Side - Updated Design */}
+      <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-base-100 relative overflow-hidden">
+        {/* Animated Particles */}
+        <div className="absolute inset-0">
+          <div className="particle particle-1 animate-float"></div>
+          <div className="particle particle-2 animate-float-delay"></div>
+          <div className="particle particle-3 animate-float"></div>
+        </div>
+        {/* Content */}
+        <div className="relative z-10 text-center space-y-4">
+          <h1 className="text-5xl font-bold text-primary transition-transform duration-300 transform hover:scale-105">
+            Connectly
+          </h1>
+          <p className="text-xl text-base-content/80 max-w-md">
+            Sign in to continue your conversations and connect with your community.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
+
+// Inline styles for particles animation
+const styles = `
+  .particle {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+  .particle-1 {
+    width: 20px;
+    height: 20px;
+    top: 20%;
+    left: 30%;
+  }
+  .particle-2 {
+    width: 15px;
+    height: 15px;
+    top: 50%;
+    left: 70%;
+  }
+  .particle-3 {
+    width: 25px;
+    height: 25px;
+    top: 80%;
+    left: 50%;
+  }
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  .animate-float-delay {
+    animation: float 6s ease-in-out infinite 2s;
+  }
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+`;
+
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
+
 export default LoginPage;
