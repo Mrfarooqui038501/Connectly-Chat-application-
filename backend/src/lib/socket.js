@@ -8,7 +8,7 @@ const server = http.createServer(app);
 
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? ["https://your-frontend-url.onrender.com"]  // Replace with your actual frontend URL
+    ? ["connectyly-chat-application.netlify.app"]  // Replace with your actual frontend URL
     : ["http://localhost:5173", "http://localhost:3000"];
 
 const io = new Server(server, {
