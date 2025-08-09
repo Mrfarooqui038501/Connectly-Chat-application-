@@ -1,3 +1,4 @@
+// lib/socket.js or wherever socket server is initialized
 import { Server } from "socket.io";
 import http from "http";
 import express from "express";
@@ -5,32 +6,49 @@ import express from "express";
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? ["https://your-frontend-url.onrender.com"]  // Replace with your actual frontend URL
+    : ["http://localhost:5173", "http://localhost:3000"];
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: allowedOrigins,
+    credentials: true,
   },
 });
 
+// Map userId => Set of socketIds (multi-tab support)
+const userSocketMap = new Map();
+
 export function getReceiverSocketId(userId) {
-  return userSocketMap[userId];
+  return userSocketMap.get(userId) || new Set();
 }
 
-// used to store online users
-const userSocketMap = {}; // {userId: socketId}
+function getOnlineUsers() {
+  return Array.from(userSocketMap.keys());
+}
 
 io.on("connection", (socket) => {
-  console.log("A user connected", socket.id);
-
   const userId = socket.handshake.query.userId;
-  if (userId) userSocketMap[userId] = socket.id;
 
-  // io.emit() is used to send events to all the connected clients
-  io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  if (userId) {
+    if (!userSocketMap.has(userId)) {
+      userSocketMap.set(userId, new Set());
+    }
+    userSocketMap.get(userId).add(socket.id);
+    io.emit("getOnlineUsers", getOnlineUsers());
+  }
 
   socket.on("disconnect", () => {
-    console.log("A user disconnected", socket.id);
-    delete userSocketMap[userId];
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    if (userId && userSocketMap.has(userId)) {
+      const userSockets = userSocketMap.get(userId);
+      userSockets.delete(socket.id);
+      if (userSockets.size === 0) {
+        userSocketMap.delete(userId);
+      }
+      io.emit("getOnlineUsers", getOnlineUsers());
+    }
   });
 });
 
