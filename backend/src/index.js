@@ -13,60 +13,25 @@ dotenv.config();
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
 
-// CORS Configuration - Consistent URLs
-const allowedOrigins = process.env.NODE_ENV === "production"
-  ? [
-      "https://connectly-chat-application-1.netlify.app"
-    ]
-  : [
-      "http://localhost:5173", 
-      "http://localhost:3000",
-      "http://127.0.0.1:5173"
-    ];
-
-// CORS middleware - MUST be before other middleware
-app.use(cors({
-  origin: function (origin, callback) {
-    console.log(`🌐 Request from origin: ${origin}`);
-    
-    // Allow requests with no origin (mobile apps, postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log(`❌ CORS blocked origin: ${origin}`);
-      callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "Cookie",
-    "Accept",
-    "Origin",
-    "X-Requested-With"
+// Enhanced CORS configuration
+const corsOptions = {
+  origin: [
+    "https://connectly-chat-application-1.netlify.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173"
   ],
-  exposedHeaders: ["Set-Cookie"],
-  optionsSuccessStatus: 200
-}));
-
-// Preflight OPTIONS handler
-app.options("*", cors({
-  origin: allowedOrigins,
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "Cookie",
-    "Accept",
-    "Origin",
-    "X-Requested-With"
-  ]
-}));
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  exposedHeaders: ["Set-Cookie"]
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options("*", cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
@@ -82,7 +47,7 @@ app.use((req, res, next) => {
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.status(200).json({ 
-    message: "Server is running",
+    status: "healthy",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development"
   });
@@ -95,78 +60,12 @@ app.use("/api/messages", messageRoutes);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err.message);
-  console.error("Stack:", err.stack);
-  
-  // CORS error handling
-  if (err.message.includes("Not allowed by CORS")) {
-    return res.status(403).json({
-      message: "CORS policy violation",
-      error: process.env.NODE_ENV === "development" ? err.message : "Access denied"
-    });
-  }
-  
-  res.status(500).json({
-    message: "Something went wrong!",
-    error: process.env.NODE_ENV === "development" ? err.message : "Internal server error",
-  });
+  res.status(500).json({ message: "Internal Server Error" });
 });
-
-// 404 handler for API routes
-app.use("/api/*", (req, res) => {
-  console.log(`❌ 404 - API endpoint not found: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({ 
-    message: "API endpoint not found",
-    path: req.originalUrl,
-    method: req.method
-  });
-});
-
-// Serve static files in production
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-  
-  // Catch-all handler for SPA
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-  });
-}
 
 // Start server
 server.listen(PORT, () => {
   console.log(`🚀 Server running on PORT: ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🔒 CORS allowed for: ${allowedOrigins.join(", ")}`);
-  console.log(`📝 API available at: ${process.env.NODE_ENV === "production" ? `https://connectly-chat-application.onrender.com` : `http://localhost:${PORT}`}/api`);
   connectDB();
-});
-
-// Graceful shutdown handlers
-process.on("SIGTERM", () => {
-  console.log("👋 SIGTERM received, shutting down gracefully");
-  server.close(() => {
-    console.log("💀 Process terminated");
-  });
-});
-
-process.on("SIGINT", () => {
-  console.log("👋 SIGINT received, shutting down gracefully");
-  server.close(() => {
-    console.log("💀 Process terminated");
-  });
-});
-
-// Handle unhandled promise rejections
-process.on("unhandledRejection", (err, promise) => {
-  console.log("❌ Unhandled Promise Rejection:", err.message);
-  server.close(() => {
-    process.exit(1);
-  });
-});
-
-// Handle uncaught exceptions
-process.on("uncaughtException", (err) => {
-  console.log("❌ Uncaught Exception:", err.message);
-  server.close(() => {
-    process.exit(1);
-  });
 });
