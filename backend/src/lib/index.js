@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://connectyly-chat-application.netlify.app",
+    origin: "https://connectly-chat-application-1.netlify.app",
     credentials: true,
   })
 );

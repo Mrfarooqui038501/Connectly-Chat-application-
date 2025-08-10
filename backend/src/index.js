@@ -16,8 +16,8 @@ const __dirname = path.resolve();
 // CORS Configuration - Make sure URLs match your deployed frontend
 const allowedOrigins = process.env.NODE_ENV === "production"
   ? [
-      "https://connectyly-chat-application.netlify.app",
-      "https://connectly-chat-application.netlify.app" // Add both variants just in case
+      "https://connectly-chat-application-1.netlify.app",
+      "https://connectly-chat-application-1.netlify.app" // Add both variants just in case
     ]
   : [
       "http://localhost:5173", 

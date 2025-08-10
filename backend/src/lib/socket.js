@@ -8,8 +8,8 @@ const server = http.createServer(app);
 // CORS configuration for Socket.IO - Must match your frontend domain
 const allowedOrigins = process.env.NODE_ENV === "production"
   ? [
-      "https://connectyly-chat-application.netlify.app",
-      "https://connectly-chat-application.netlify.app" // Add both variants
+      "https://connectly-chat-application-1.netlify.app",
+      "https://connectly-chat-application-1.netlify.app" // Add both variants
     ]
   : [
       "http://localhost:5173", 
