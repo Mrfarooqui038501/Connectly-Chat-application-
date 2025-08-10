@@ -5,85 +5,96 @@ import express from "express";
 const app = express();
 const server = http.createServer(app);
 
-// CORS configuration
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? ["https://connectly-chat-application-1.netlify.app"]
+    : [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173"
+      ];
+
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://connectly-chat-application-1.netlify.app",
-      "http://localhost:5173",
-      "http://localhost:3000"
-    ],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
-    transports: ["websocket", "polling"]
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    exposedHeaders: ["Set-Cookie"],
   },
+  allowEIO3: true,
+  transports: ["websocket", "polling"],
   pingTimeout: 60000,
   pingInterval: 25000,
-  cookie: false
 });
 
-// User socket tracking
-const userSocketMap = new Map(); // userId -> Set(socketIds)
+const userSocketMap = new Map();
 
-// Helper functions
-const getReceiverSocketId = (userId) => {
-  const sockets = userSocketMap.get(userId);
-  return sockets ? Array.from(sockets)[0] : null;
-};
+export function getReceiverSocketId(userId) {
+  const userSockets = userSocketMap.get(userId);
+  if (!userSockets || userSockets.size === 0) return null;
+  return Array.from(userSockets)[0]; // return first active socket
+}
 
-const getOnlineUsers = () => Array.from(userSocketMap.keys());
+function getOnlineUsers() {
+  return Array.from(userSocketMap.keys());
+}
 
-// Socket.io connection handler
 io.on("connection", (socket) => {
   console.log(`✅ User connected: ${socket.id}`);
-  
+
   const userId = socket.handshake.query.userId;
-  
+
   if (userId && userId !== "undefined") {
-    // Add user to tracking map
+
     if (!userSocketMap.has(userId)) {
       userSocketMap.set(userId, new Set());
     }
     userSocketMap.get(userId).add(socket.id);
-    
-    // Notify all clients about online users
-    io.emit("getOnlineUsers", getOnlineUsers());
-    
-    // Join user to their private room
+
+    console.log(`👤 User ${userId} connected with socket ${socket.id}`);
+
+    // Join the user to their own private room
     socket.join(userId);
+
+    // Emit the updated list of online users
+    io.emit("getOnlineUsers", getOnlineUsers());
+  } else {
+    console.log("⚠️ Connection without valid userId");
   }
 
-  // Handle disconnection
-  socket.on("disconnect", () => {
-    console.log(`❌ User disconnected: ${socket.id}`);
-    
+  socket.on("disconnect", (reason) => {
+    console.log(`❌ User disconnected: ${socket.id}, reason: ${reason}`);
+
     if (userId && userSocketMap.has(userId)) {
       const userSockets = userSocketMap.get(userId);
       userSockets.delete(socket.id);
-      
+
       if (userSockets.size === 0) {
         userSocketMap.delete(userId);
+        console.log(`👋 User ${userId} fully disconnected`);
       }
-      
       io.emit("getOnlineUsers", getOnlineUsers());
     }
   });
 
-  // Error handling
-  socket.on("error", (error) => {
-    console.log("Socket error:", error);
+  socket.on("connect_error", (error) => {
+    console.log("❌ Socket connection error:", error.message);
+  });
+
+  socket.on("typing", (data) => {
+    const receiverSocketId = getReceiverSocketId(data.receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("typing", {
+        senderId: userId,
+        isTyping: data.isTyping,
+      });
+    }
   });
 });
 
-// Handle server errors
 io.engine.on("connection_error", (err) => {
-  console.log("Socket.IO connection error:", {
-    code: err.code,
-    message: err.message,
-    context: err.context
-  });
+  console.log("❌ Socket.IO connection error:", err.req, err.code, err.message, err.context);
 });
 
 export { io, app, server };
-export { getReceiverSocketId };
