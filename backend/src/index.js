@@ -13,24 +13,24 @@ dotenv.config();
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
 
-// Allowed origins for CORS including full https URL for Netlify frontend
+// IMPORTANT: Use the FULL URL, including "https://"
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? ["https://connectyly-chat-application.netlify.app"] // Full URL including https://
+    ? ["https://connectyly-chat-application.netlify.app"]
     : ["http://localhost:5173", "http://localhost:3000"];
 
-// Dynamic CORS origin checker to allow only allowed origins and handle no-origin requests like Postman
+// Dynamic origin function is safest for credentials:
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // Allow no-origin requests like Postman
+      if (!origin) return callback(null, true); // allow tools like Postman
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true, // allow cookies
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   })
@@ -42,11 +42,9 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
-// Error handling
 app.use((err, req, res, next) => {
   console.error("Error:", err.stack);
   res.status(500).json({
@@ -55,12 +53,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler for APIs
 app.use("/api/*", (req, res) => {
   res.status(404).json({ message: "API endpoint not found" });
 });
 
-// Serve React frontend in production
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
   app.get("*", (req, res) => {

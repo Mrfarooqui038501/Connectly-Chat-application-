@@ -1,4 +1,3 @@
-// lib/socket.js or wherever socket server is initialized
 import { Server } from "socket.io";
 import http from "http";
 import express from "express";
@@ -6,9 +5,10 @@ import express from "express";
 const app = express();
 const server = http.createServer(app);
 
+// MUST include "https://" in production for Netlify!
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? ["connectyly-chat-application.netlify.app"]  // Replace with your actual frontend URL
+    ? ["https://connectyly-chat-application.netlify.app"]
     : ["http://localhost:5173", "http://localhost:3000"];
 
 const io = new Server(server, {
@@ -18,7 +18,7 @@ const io = new Server(server, {
   },
 });
 
-// Map userId => Set of socketIds (multi-tab support)
+// User socket map logic (unchanged)
 const userSocketMap = new Map();
 
 export function getReceiverSocketId(userId) {
@@ -31,7 +31,6 @@ function getOnlineUsers() {
 
 io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
-
   if (userId) {
     if (!userSocketMap.has(userId)) {
       userSocketMap.set(userId, new Set());
