@@ -11,10 +11,13 @@ export const generateToken = (userId, res) => {
     httpOnly: true, // Prevent XSS attacks
     secure: process.env.NODE_ENV === "production", // HTTPS only in production
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Important for cross-origin requests
-    domain: process.env.NODE_ENV === "production" ? undefined : undefined, // Let browser handle domain
+    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined, // Set domain for production
   };
 
-  console.log(`🍪 Setting cookie with options:`, cookieOptions);
+  console.log(`🍪 Setting cookie with options:`, {
+    ...cookieOptions,
+    domain: cookieOptions.domain || 'localhost'
+  });
 
   res.cookie("jwt", token, cookieOptions);
 
@@ -26,6 +29,7 @@ export const clearToken = (res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
     maxAge: 0 // Expire immediately
   };
 
