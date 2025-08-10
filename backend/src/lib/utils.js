@@ -5,12 +5,30 @@ export const generateToken = (userId, res) => {
     expiresIn: "7d",
   });
 
-  res.cookie("jwt", token, {
-    maxAge: 7 * 24 * 60 * 60 * 1000, // MS
-    httpOnly: true, // prevent XSS attacks cross-site scripting attacks
-    sameSite: "strict", // CSRF attacks cross-site request forgery attacks
-    secure: process.env.NODE_ENV !== "development",
-  });
+  // Cookie configuration
+  const cookieOptions = {
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    httpOnly: true, // Prevent XSS attacks
+    secure: process.env.NODE_ENV === "production", // HTTPS only in production
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Important for cross-origin requests
+    domain: process.env.NODE_ENV === "production" ? undefined : undefined, // Let browser handle domain
+  };
+
+  console.log(`🍪 Setting cookie with options:`, cookieOptions);
+
+  res.cookie("jwt", token, cookieOptions);
 
   return token;
+};
+
+export const clearToken = (res) => {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 0 // Expire immediately
+  };
+
+  res.cookie("jwt", "", cookieOptions);
+  console.log("🍪 Cookie cleared");
 };
