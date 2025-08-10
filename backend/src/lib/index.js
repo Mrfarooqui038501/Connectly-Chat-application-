@@ -1,42 +1,21 @@
-import express from "express";
-import dotenv from "dotenv";
-import cookieParser from "cookie-parser";
-import cors from "cors";
+import jwt from "jsonwebtoken";
 
-import path from "path";
-
-import { connectDB } from "./lib/db.js";
-
-import authRoutes from "../routes/auth.route.js";
-import messageRoutes from "../routes/message.route.js";
-import { app, server } from "./socket.js";
-
-dotenv.config();
-
-const PORT = process.env.PORT;
-const __dirname = path.resolve();
-
-app.use(express.json());
-app.use(cookieParser());
-app.use(
-  cors({
-    origin: "https://connectly-chat-application-1.netlify.app",
-    credentials: true,
-  })
-);
-
-app.use("/api/auth", authRoutes);
-app.use("/api/messages", messageRoutes);
-
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+export const generateToken = (userId, res) => {
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  res.cookie("jwt", token, {
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
-}
+  return token;
+};
 
-server.listen(PORT, () => {
-  console.log("server is running on PORT:" + PORT);
-  connectDB();
-});
+export const clearToken = (res) => {
+  res.cookie("jwt", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 0
+  });
+};
